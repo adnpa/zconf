@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 )
 
 // exported func
@@ -23,8 +24,23 @@ func NewWithOption(option *Option) *Configger {
 }
 
 func (c *Configger) Load(config interface{}, files ...string) (err error) {
-	err = c.load(config, false, files...)
+	_, err = c.load(config, false, files...)
 
+	if c.Option.AutoReload {
+		go func() {
+			timer := time.NewTimer(c.Option.AutoReloadInterval)
+			for range timer.C {
+				var changed bool
+				changed, err = c.load(config, true, files...)
+				if changed && c.Option.AutoReloadCallback != nil && err == nil {
+					c.Option.AutoReloadCallback(config)
+				} else if err != nil {
+					fmt.Printf("load config file failed, err:%v\n", err)
+				}
+				timer.Reset(c.Option.AutoReloadInterval)
+			}
+		}()
+	}
 	return
 }
 

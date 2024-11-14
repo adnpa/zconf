@@ -3,6 +3,7 @@ package zconf
 import (
 	"errors"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"io"
 	"io/fs"
 	"os"
@@ -11,20 +12,20 @@ import (
 	"time"
 )
 
-// exported func
-
 func Load(config interface{}, files ...string) error {
 	return NewWithOption(nil).Load(config, files...)
 }
 
 type Configger struct {
-	*Option
-	confModTimes map[string]time.Time
-
-	Fs fs.FS
+	*Option                           //选项
+	confModTimes map[string]time.Time //配置修改时间
+	Fs           fs.FS                //文件系统 需要访问其他磁盘的情况下
 }
 
 func NewWithOption(option *Option) *Configger {
+	if option == nil {
+		option = &Option{}
+	}
 	return &Configger{Option: option}
 }
 
@@ -37,7 +38,7 @@ func (c *Configger) Load(config interface{}, files ...string) (err error) {
 
 	if c.Option.AutoReload {
 		go func() {
-			//临时对象用于比较 是否修改
+			//临时对象 用于比较修改时间
 			reflectPtr := reflect.New(reflect.ValueOf(config).Elem().Type())
 			reflectPtr.Elem().Set(defaultVal)
 
@@ -74,6 +75,12 @@ func (c *Configger) load(config interface{}, watch bool, files ...string) (bool,
 		}
 	}
 
+	err := c.processDefault(config)
+	if err != nil {
+		fmt.Println("default err", err)
+		return false, err
+	}
+
 	for _, file := range configFiles {
 		c.processFile(config, file, watch)
 	}
@@ -98,4 +105,55 @@ func (c *Configger) processFile(config interface{}, filePath string, watch bool)
 		return errors.New("unknown config file type: " + filePath)
 	}
 
+}
+
+func (c *Configger) processDefault(config interface{}) (err error) {
+	configValue := reflect.Indirect(reflect.ValueOf(config))
+	if configValue.Kind() != reflect.Struct {
+		return errors.New("invalid config, should be struct")
+	}
+
+	configType := configValue.Type()
+	for i := 0; i < configType.NumField(); i++ {
+		var (
+			fieldStruct = configType.Field(i)
+			field       = configValue.Field(i)
+		)
+
+		if !field.CanAddr() || !field.CanInterface() {
+			continue
+		}
+
+		isEmpty := reflect.DeepEqual(field.Interface(), reflect.Zero(field.Type()).Interface())
+		if isEmpty {
+			//如果配置为空则填充默认值
+			if defaultVal := fieldStruct.Tag.Get("default"); defaultVal != "" {
+				if err = yaml.Unmarshal([]byte(defaultVal), field.Addr().Interface()); err != nil {
+					return
+				}
+			}
+		}
+
+		for field.Kind() == reflect.Ptr {
+			field = field.Elem()
+		}
+
+		//处理嵌套struct
+		switch field.Kind() {
+		case reflect.Struct:
+			if err = c.processDefault(field.Addr().Interface()); err != nil {
+				return
+			}
+		case reflect.Slice:
+			for i := 0; i < field.Len(); i++ {
+				if reflect.Indirect(field.Index(i)).Interface() == reflect.String {
+					if err = c.processDefault(field.Index(i).Addr().Interface()); err != nil {
+						return
+					}
+				}
+			}
+		}
+
+	}
+	return
 }

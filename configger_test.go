@@ -7,7 +7,7 @@ import (
 )
 
 type TestConfig struct {
-	Name string
+	Name string `default:"abc"`
 	Addr string
 	Port int
 }
@@ -41,6 +41,7 @@ func TestAutoload(t *testing.T) {
 	select {}
 }
 
-func TestDefault(t *testing.T) {
-
-}
+//func TestDefault(t *testing.T) {
+//	var conf TestConfig
+//	file
+//}

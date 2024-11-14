@@ -27,6 +27,7 @@ func TestAutoload(t *testing.T) {
 	var conf TestConfig
 	filePath := "./test_config/conf.json"
 	callback := func(c interface{}) {
+		fmt.Println("callback")
 		fmt.Println(c)
 	}
 
@@ -37,8 +38,9 @@ func TestAutoload(t *testing.T) {
 	})
 	configger.Load(&conf, filePath)
 
-	timer := time.NewTimer(5 * time.Second)
-	for range timer.C {
-		timer.Reset(5 * time.Second)
-	}
+	select {}
+}
+
+func TestDefault(t *testing.T) {
+
 }

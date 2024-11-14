@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+type AppConfig struct {
+	App TestConfig
+}
+
 type TestConfig struct {
 	Name string `default:"abc"`
 	Addr string
@@ -19,6 +23,20 @@ func Test(t *testing.T) {
 func TestUnmarshalJson(t *testing.T) {
 	var conf TestConfig
 	filePath := "./test_config/conf.json"
+	Load(&conf, filePath)
+	fmt.Println(conf)
+}
+
+func TestUnmarshalYaml(t *testing.T) {
+	var conf AppConfig
+	filePath := "./test_config/conf.yml"
+	Load(&conf, filePath)
+	fmt.Println(conf)
+}
+
+func TestUnmarshalToml(t *testing.T) {
+	var conf AppConfig
+	filePath := "./test_config/conf.toml"
 	Load(&conf, filePath)
 	fmt.Println(conf)
 }
@@ -40,8 +58,3 @@ func TestAutoload(t *testing.T) {
 
 	select {}
 }
-
-//func TestDefault(t *testing.T) {
-//	var conf TestConfig
-//	file
-//}

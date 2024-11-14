@@ -1,0 +1,20 @@
+#app:
+#  name: MyApp
+#  version: 1.0.0
+#  services:
+#    web:
+#      host: 0.0.0.0
+#      port: 8080
+#      replicas: 3
+#    database:
+#      type: postgres
+#      host: db.example.com
+#      port: 5432
+#      username: user
+#      password: secret
+#  environment:
+#    - NODE_ENV: production
+#    - API_KEY: your_api_key_here
+app:
+  addr: 127.0.0.1
+  port: 3306

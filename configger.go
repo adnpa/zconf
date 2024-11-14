@@ -97,10 +97,12 @@ func (c *Configger) processFile(config interface{}, filePath string, watch bool)
 	data, _ := io.ReadAll(file)
 
 	switch {
-	//case strings.HasSuffix(filePath, ".yaml") || strings.HasSuffix(filePath, ".yml"):
-	//	return yaml.Unmarshal(data, config)
+	case strings.HasSuffix(filePath, ".yaml") || strings.HasSuffix(filePath, ".yml"):
+		return UnmarshalYaml(data, config, watch)
 	case strings.HasSuffix(filePath, ".json"):
 		return UnmarshalJson(data, config, watch)
+	case strings.HasSuffix(filePath, ".toml"):
+		return UnmarshalToml(data, config, watch)
 	default:
 		return errors.New("unknown config file type: " + filePath)
 	}
